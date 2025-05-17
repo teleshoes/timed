@@ -82,7 +82,7 @@ SOURCES += notification.cpp
 HEADERS += notification.h
 
 CONFIG += link_pkgconfig iodata-qt$${QT_MAJOR_VERSION}
-PKGCONFIG += libpcrecpp libsystemd
+PKGCONFIG += libsystemd
 PKGCONFIG += sailfishaccesscontrol
 
 CONFIG(dsme_dbus_if) {

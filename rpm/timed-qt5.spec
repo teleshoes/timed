@@ -15,7 +15,6 @@ Requires:   sailfish-setup >= 0.1.10
 %{_oneshot_requires_post}
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
-BuildRequires:  pkgconfig(libpcrecpp)
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(Qt5Test)
