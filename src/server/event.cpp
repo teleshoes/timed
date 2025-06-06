@@ -24,8 +24,7 @@
 **                                                                        **
 ***************************************************************************/
 #include <sstream>
-
-#include <pcrecpp.h>
+#include <QRegularExpression>
 
 #include "../common/log.h"
 #include "../lib/aliases.h"
@@ -70,12 +69,23 @@ static void copy_recr(const recurrence_io_t &from, recurrence_pattern_t &to)
 
 bool event_t::check_attributes(string &error_message, const attribute_t &a, bool empty_only)
 {
-    static pcrecpp::RE known_keyword
-        = "APPLICATION|TITLE|TEST|COMMAND|USER|CROUP|"
-          "DBUS_SERVICE|DBUS_PATH|DBUS_INTERFACE|DBUS_METHOD|DBUS_SIGNAL|"
-          "PLUGIN|BACKUP";
-    static pcrecpp::RE upper_case = "[A-Z_]+";
-    static pcrecpp::RE app_name = "[A-Za-z_][A-Za-z_0-9]*";
+    static QRegularExpression upper_case("^[A-Z_]+$");
+    static QSet<QString> known_keywords = {
+        "APPLICATION",
+        "TITLE",
+        "TEST",
+        "COMMAND",
+        "USER",
+        "CROUP",
+        "DBUS_SERVICE",
+        "DBUS_PATH",
+        "DBUS_INTERFACE",
+        "DBUS_METHOD",
+        "DBUS_SIGNAL",
+        "PLUGIN",
+        "BACKUP",
+    };
+    static QRegularExpression app_name("^[A-Za-z_][A-Za-z_0-9]*$");
 
     bool app_name_found = false;
 
@@ -86,13 +96,13 @@ bool event_t::check_attributes(string &error_message, const attribute_t &a, bool
             return error_message += ": empty value of attribute '" + it->first + "'", false;
         if (empty_only)
             continue;
-        if (upper_case.FullMatch(it->first)) {
-            if (!known_keyword.FullMatch(it->first))
+        if (upper_case.match(QString::fromStdString(it->first)).hasMatch()) {
+            if (!known_keywords.contains(QString::fromStdString(it->first)))
                 return error_message = "unknown upper case event attribute key '" + it->first + "'",
                        false;
             if (it->first == "APPLICATION") {
                 app_name_found = true;
-                if (!app_name.FullMatch(it->second))
+                if (!app_name.match(QString::fromStdString(it->second)).hasMatch())
                     return error_message = "invalid application name '" + it->second + "'", false;
             }
         }
@@ -723,19 +733,19 @@ void event_t::run_actions(const vector<unsigned> &acts, unsigned begin, unsigned
     string cmd = find_action_attribute("COMMAND", a);
     if (a.flags & ActionFlags::Send_Cookie) {
         log_debug("cmd='%s', COOKIE to be replaced by value", cmd.c_str());
-        using namespace pcrecpp;
-        static RE exp("(<COOKIE>)|\\b(COOKIE)\\b", UTF8());
-        ostringstream decimal;
-        decimal << cookie.value();
-        exp.GlobalReplace(decimal.str(), &cmd);
+        static QRegularExpression exp("(<COOKIE>)|\\b(COOKIE)\\b");
+        QString command = QString::fromStdString(cmd);
+        command.replace(exp, QString::number(cookie.value()));
+        cmd = command.toStdString();
         log_debug("cmd='%s', COOKIE replaced", cmd.c_str());
     }
     if (flags & EventFlags::Trigger_When_Adjusting) {
         string adj = state->machine->transition_time_adjustment.str();
         log_debug("cmd='%s', ADJUSTMENT to be replaced by '%s'", cmd.c_str(), adj.c_str());
-        using namespace pcrecpp;
-        static RE exp("(<ADJUSTMENT>)|\\b(ADJUSTMENT)\\b", UTF8());
-        exp.GlobalReplace(adj, &cmd);
+        static QRegularExpression exp("(<ADJUSTMENT>)|\\b(ADJUSTMENT)\\b");
+        QString command = QString::fromStdString(cmd);
+        command.replace(exp, QString::fromStdString(adj));
+        cmd = command.toStdString();
         log_debug("cmd='%s', ADJUSTMENT replaced", cmd.c_str());
     }
     log_info("execuing command line action %u[%d]: '%s'",

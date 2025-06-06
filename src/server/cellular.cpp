@@ -25,8 +25,6 @@
 #include <string>
 using namespace std;
 
-#include <pcrecpp.h>
-
 #include "../common/log.h"
 #include "cellular.h"
 #include "misc.h"
